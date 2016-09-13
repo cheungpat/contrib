@@ -107,6 +107,7 @@ type loadBalancerController struct {
 	tcpConfigMap      string
 	udpConfigMap      string
 	defSSLCertificate string
+	alwaysEnableSSL   bool
 
 	recorder record.EventRecorder
 
@@ -127,7 +128,8 @@ type loadBalancerController struct {
 // newLoadBalancerController creates a controller for nginx loadbalancer
 func newLoadBalancerController(kubeClient *client.Client, resyncPeriod time.Duration,
 	defaultSvc, namespace, nxgConfigMapName, tcpConfigMapName, udpConfigMapName,
-	defSSLCertificate string, runtimeInfo *podInfo) (*loadBalancerController, error) {
+	defSSLCertificate string, runtimeInfo *podInfo,
+	alwaysEnableSSL bool) (*loadBalancerController, error) {
 
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(glog.Infof)
@@ -142,6 +144,7 @@ func newLoadBalancerController(kubeClient *client.Client, resyncPeriod time.Dura
 		tcpConfigMap:      tcpConfigMapName,
 		udpConfigMap:      udpConfigMapName,
 		defSSLCertificate: defSSLCertificate,
+		alwaysEnableSSL:   alwaysEnableSSL,
 		defaultSvc:        defaultSvc,
 		recorder: eventBroadcaster.NewRecorder(api.EventSource{
 			Component: "nginx-ingress-controller",
@@ -912,6 +915,14 @@ func (lbc *loadBalancerController) createServers(data []interface{}) map[string]
 				server.SSLCertificate = ngxCert.PemFileName
 				server.SSLCertificateKey = ngxCert.PemFileName
 				server.SSLPemChecksum = ngxCert.PemSHA
+			} else if lbc.alwaysEnableSSL {
+				if ngxCert, ok := pems[defServerName]; ok {
+					server := servers[host]
+					server.SSL = true
+					server.SSLCertificate = ngxCert.PemFileName
+					server.SSLCertificateKey = ngxCert.PemFileName
+					server.SSLPemChecksum = ngxCert.PemSHA
+				}
 			}
 		}
 	}

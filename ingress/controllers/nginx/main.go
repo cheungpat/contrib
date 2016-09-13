@@ -79,6 +79,9 @@ var (
 
 	defSSLCertificate = flags.String("default-ssl-certificate", "", `Name of the secret that contains a SSL 
 		certificate to be used as default for a HTTPS catch-all server`)
+
+	alwaysEnableSSL = flags.Bool("always-enable-ssl", false, `Enable SSL on Ingress even if certificate is
+		not specified. The default SSL certificate is used instead.`)
 )
 
 func main() {
@@ -121,7 +124,7 @@ func main() {
 
 	lbc, err := newLoadBalancerController(kubeClient, *resyncPeriod,
 		*defaultSvc, *watchNamespace, *nxgConfigMap, *tcpConfigMapName,
-		*udpConfigMapName, *defSSLCertificate, runtimePodInfo)
+		*udpConfigMapName, *defSSLCertificate, runtimePodInfo, *alwaysEnableSSL)
 	if err != nil {
 		glog.Fatalf("%v", err)
 	}
